@@ -2,14 +2,17 @@
 
 import * as React from "react";
 import Alert from "@mui/material/Alert";
+import Accordion from "@mui/material/Accordion";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import AccordionSummary from "@mui/material/AccordionSummary";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
@@ -48,10 +51,14 @@ function formatUsd(n: number) {
 
 export default function WinnerModule() {
   const theme = useTheme();
-  const [selectedSymbols, setSelectedSymbols] = React.useState<string[]>(
-    DEFAULT_SELECTED_SYMBOLS,
+  const allSymbols = React.useMemo(
+    () => DEFAULT_COIN_OPTIONS.map((c) => c.symbol),
+    [],
   );
-  const [search, setSearch] = React.useState("");
+  const [selectedSymbols, setSelectedSymbols] = React.useState<string[]>(
+    allSymbols,
+  );
+  const [pickerOpen, setPickerOpen] = React.useState(false);
   const [best, setBest] = React.useState<BestResponse | null>(null);
   const [chart, setChart] = React.useState<ChartResponse | null>(null);
   const [isLoadingBest, setIsLoadingBest] = React.useState(false);
@@ -62,18 +69,80 @@ export default function WinnerModule() {
   React.useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
+      if (!raw) {
+        // #region agent log
+        fetch("http://127.0.0.1:7242/ingest/48e77f11-88a7-4f89-bf80-e14339fcdc25", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: "debug-session",
+            runId: "default-all-collapse",
+            hypothesisId: "H",
+            location: "src/components/WinnerModule.tsx:loadSelection",
+            message: "No saved selection; keeping default all",
+            data: { selectedCount: allSymbols.length, allCount: allSymbols.length },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
+        return;
+      }
       const parsed = JSON.parse(raw) as unknown;
       if (Array.isArray(parsed)) {
         const cleaned = parsed
           .map((s) => String(s).toUpperCase().replace(/[^A-Z0-9]/g, ""))
           .filter((s) => s.length >= 2 && s.length <= 12);
-        if (cleaned.length > 0) setSelectedSymbols(cleaned.slice(0, 20));
+        const unique = Array.from(new Set(cleaned)).slice(0, 20);
+
+        // Requirement: default to ALL coins on load.
+        // If a smaller selection was saved, override it back to ALL to avoid surprising "missing coins" on refresh.
+        const shouldOverrideToAll = unique.length !== allSymbols.length;
+        if (shouldOverrideToAll) {
+          setSelectedSymbols(allSymbols);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(allSymbols));
+          } catch {
+            // ignore
+          }
+          // #region agent log
+          fetch("http://127.0.0.1:7242/ingest/48e77f11-88a7-4f89-bf80-e14339fcdc25", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sessionId: "debug-session",
+              runId: "default-all-collapse",
+              hypothesisId: "H",
+              location: "src/components/WinnerModule.tsx:loadSelection",
+              message: "Saved selection overridden to ALL on load",
+              data: { savedCount: unique.length, allCount: allSymbols.length },
+              timestamp: Date.now(),
+            }),
+          }).catch(() => {});
+          // #endregion
+          return;
+        }
+
+        setSelectedSymbols(unique);
+        // #region agent log
+        fetch("http://127.0.0.1:7242/ingest/48e77f11-88a7-4f89-bf80-e14339fcdc25", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: "debug-session",
+            runId: "default-all-collapse",
+            hypothesisId: "H",
+            location: "src/components/WinnerModule.tsx:loadSelection",
+            message: "Saved selection already ALL; keeping it",
+            data: { savedCount: unique.length, allCount: allSymbols.length },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
       }
     } catch {
       // ignore
     }
-  }, []);
+  }, [allSymbols]);
 
   // Persist selection.
   React.useEffect(() => {
@@ -84,18 +153,7 @@ export default function WinnerModule() {
     }
   }, [selectedSymbols]);
 
-  const allSymbols = React.useMemo(
-    () => DEFAULT_COIN_OPTIONS.map((c) => c.symbol),
-    [],
-  );
-
-  const filteredOptions = React.useMemo(() => {
-    const q = search.trim().toUpperCase();
-    if (!q) return DEFAULT_COIN_OPTIONS;
-    return DEFAULT_COIN_OPTIONS.filter(
-      (c) => c.symbol.includes(q) || c.name.toUpperCase().includes(q),
-    );
-  }, [search]);
+  const filteredOptions = DEFAULT_COIN_OPTIONS;
 
   const setAll = React.useCallback(() => setSelectedSymbols(allSymbols), [allSymbols]);
   const setDefault = React.useCallback(
@@ -174,9 +232,94 @@ export default function WinnerModule() {
   const winner = best?.winner;
   const updatedAt = best?.ts ? new Date(best.ts) : null;
 
+  React.useEffect(() => {
+    const runId = "pre-fix";
+    const card = document.querySelector('[data-testid="winner-card"]');
+    const content = document.querySelector('[data-testid="winner-content"]');
+    const cs = content ? window.getComputedStyle(content as Element) : null;
+    // #region agent log
+    fetch("http://127.0.0.1:7242/ingest/48e77f11-88a7-4f89-bf80-e14339fcdc25", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: "debug-session",
+        runId,
+        hypothesisId: "C",
+        location: "src/components/WinnerModule.tsx:useEffect",
+        message: "Winner padding/computed styles",
+        data: {
+          viewportW: window.innerWidth,
+          cardRect: card ? (card as HTMLElement).getBoundingClientRect() : null,
+          contentPadding: cs
+            ? { pl: cs.paddingLeft, pr: cs.paddingRight, pt: cs.paddingTop, pb: cs.paddingBottom }
+            : null,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+  }, []);
+
+  React.useEffect(() => {
+    const runId = "remove-search";
+    const input = document.querySelector('input[aria-label="Search coins"], input[name="Search coins"]');
+    const wrapper = document.querySelector('[data-testid="winner-chip-wrap"]');
+    const chipCount = wrapper ? wrapper.querySelectorAll(".MuiChip-root").length : null;
+    // #region agent log
+    fetch("http://127.0.0.1:7242/ingest/48e77f11-88a7-4f89-bf80-e14339fcdc25", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: "debug-session",
+        runId,
+        hypothesisId: "E",
+        location: "src/components/WinnerModule.tsx:useEffect",
+        message: "Search field removed + chip render count",
+        data: {
+          hasSearchInput: !!input,
+          chipCount,
+          optionCount: DEFAULT_COIN_OPTIONS.length,
+          selectedCount: selectedSymbols.length,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+  }, [selectedSymbols.length]);
+
+  React.useEffect(() => {
+    const runId = "default-all-collapse";
+    let hasSaved = false;
+    try {
+      hasSaved = !!localStorage.getItem(STORAGE_KEY);
+    } catch {
+      hasSaved = false;
+    }
+    // #region agent log
+    fetch("http://127.0.0.1:7242/ingest/48e77f11-88a7-4f89-bf80-e14339fcdc25", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: "debug-session",
+        runId,
+        hypothesisId: "F",
+        location: "src/components/WinnerModule.tsx:useEffect",
+        message: "Default selection + persistence + picker state",
+        data: {
+          hasSavedSelection: hasSaved,
+          selectedCount: selectedSymbols.length,
+          allCount: allSymbols.length,
+          pickerOpen,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+  }, [allSymbols.length, pickerOpen, selectedSymbols.length]);
+
   return (
-    <Card>
-      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+    <Card data-testid="winner-card">
+      <CardContent data-testid="winner-content" sx={{ p: { xs: 2, sm: 3 } }}>
         <Stack spacing={{ xs: 1.5, sm: 2 }}>
           <Stack spacing={0.5} sx={{ px: { xs: 0.25, sm: 0 } }}>
             <Typography variant="h6" fontWeight={800}>
@@ -187,63 +330,92 @@ export default function WinnerModule() {
             </Typography>
           </Stack>
 
-          <Stack spacing={1}>
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              gap={1}
-              alignItems={{ xs: "stretch", sm: "center" }}
-            >
-              <TextField
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                label="Search coins"
-                placeholder="BTC, ETH, Solana…"
-                size="small"
-                fullWidth
-              />
-              <Stack direction="row" gap={1} sx={{ flexWrap: "wrap" }}>
-                <Button
-                  onClick={setAll}
-                  variant="contained"
-                  color="secondary"
-                  size="small"
-                >
-                  Select all
-                </Button>
-                <Button onClick={setDefault} variant="outlined" size="small">
-                  Reset
-                </Button>
-                <Button onClick={clearAll} variant="text" size="small">
-                  Clear
-                </Button>
+          <Accordion
+            expanded={pickerOpen}
+            onChange={(_, expanded) => {
+              setPickerOpen(expanded);
+              // #region agent log
+              fetch("http://127.0.0.1:7242/ingest/48e77f11-88a7-4f89-bf80-e14339fcdc25", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  sessionId: "debug-session",
+                  runId: "default-all-collapse",
+                  hypothesisId: "G",
+                  location: "src/components/WinnerModule.tsx:Accordion:onChange",
+                  message: "Picker accordion toggled",
+                  data: { expanded },
+                  timestamp: Date.now(),
+                }),
+              }).catch(() => {});
+              // #endregion
+            }}
+            disableGutters
+            sx={{
+              borderRadius: 3,
+              bgcolor: "rgba(0,0,0,0.10)",
+              border: "1px solid",
+              borderColor: "divider",
+              "&:before": { display: "none" },
+            }}
+          >
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: "100%" }}>
+                <Typography fontWeight={800}>Coin list</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {selectedSymbols.length}/{Math.min(20, allSymbols.length)} selected
+                </Typography>
               </Stack>
-            </Stack>
-
-            <Stack direction="row" gap={1} sx={{ flexWrap: "wrap" }}>
-              {filteredOptions.map((c) => {
-                const selected = selectedSymbols.includes(c.symbol);
-                return (
-                  <Chip
-                    key={c.symbol}
-                    label={c.symbol}
-                    onClick={() => toggleSymbol(c.symbol)}
+            </AccordionSummary>
+            <AccordionDetails>
+              <Stack spacing={1}>
+                <Stack direction="row" gap={1} sx={{ flexWrap: "wrap" }}>
+                  <Button
+                    onClick={setAll}
+                    variant="contained"
+                    color="secondary"
                     size="small"
-                    color={selected ? "secondary" : "default"}
-                    variant={selected ? "filled" : "outlined"}
-                    sx={{
-                      cursor: "pointer",
-                      borderColor: selected ? "transparent" : "rgba(255,255,255,0.45)",
-                      bgcolor: selected ? undefined : "rgba(255,255,255,0.08)",
-                    }}
-                  />
-                );
-              })}
-            </Stack>
+                  >
+                    Select all
+                  </Button>
+                  <Button onClick={setDefault} variant="outlined" size="small">
+                    Reset
+                  </Button>
+                  <Button onClick={clearAll} variant="text" size="small">
+                    Clear
+                  </Button>
+                </Stack>
 
-            <Typography variant="caption" color="text.secondary">
-              Selected: {selectedSymbols.length}/20
-            </Typography>
-          </Stack>
+                <Stack
+                  data-testid="winner-chip-wrap"
+                  direction="row"
+                  gap={1}
+                  sx={{ flexWrap: "wrap" }}
+                >
+                  {filteredOptions.map((c) => {
+                    const selected = selectedSymbols.includes(c.symbol);
+                    return (
+                      <Chip
+                        key={c.symbol}
+                        label={c.symbol}
+                        onClick={() => toggleSymbol(c.symbol)}
+                        size="small"
+                        color={selected ? "secondary" : "default"}
+                        variant={selected ? "filled" : "outlined"}
+                        sx={{
+                          cursor: "pointer",
+                          borderColor: selected
+                            ? "transparent"
+                            : "rgba(255,255,255,0.45)",
+                          bgcolor: selected ? undefined : "rgba(255,255,255,0.08)",
+                        }}
+                      />
+                    );
+                  })}
+                </Stack>
+              </Stack>
+            </AccordionDetails>
+          </Accordion>
 
           <Divider />
 
