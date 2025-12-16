@@ -3,7 +3,7 @@ import ThemeRegistry from "./theme-registry";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const title = "Buy the Best Crypto Coin ATM";
+  const title = "Chosen1";
   const description = "best crypto over the last 5 minutes";
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();

@@ -10,7 +10,7 @@ import BuyModule from "./BuyModule";
 export default function Dashboard() {
   React.useEffect(() => {
     const runId = "version-ping-2";
-    const codeVersion = "2025-12-16T00:25Z-og-preview-check";
+    const codeVersion = "2025-12-16T00:40Z-title-chosen1";
 
     const readMeta = () => {
       const ogImage = document
@@ -161,7 +161,7 @@ export default function Dashboard() {
                 px: 1,
               }}
             >
-              Buy the Best Crypto Coin ATM
+              Chosen1
             </Typography>
             <Typography variant="body1" sx={{ opacity: 0.95, px: 1 }}>
               best crypto over the last 5 minutes
