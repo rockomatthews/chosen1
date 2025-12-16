@@ -31,22 +31,31 @@ export async function GET(req: Request) {
     );
   }
 
-  // limit=N returns N+1 points
-  const points = await fetchHistoMinute({ fsym: symbol, tsym: TSYM, limit });
+  try {
+    // limit=N returns N+1 points
+    const points = await fetchHistoMinute({ fsym: symbol, tsym: TSYM, limit });
 
-  return NextResponse.json(
-    {
-      symbol,
-      quote: TSYM,
-      ts: Date.now(),
-      points: points.map((p) => ({ t: p.time * 1000, price: p.close })),
-    },
-    {
-      headers: {
-        "Cache-Control": `s-maxage=${CACHE_SECONDS}, stale-while-revalidate=300`,
+    return NextResponse.json(
+      {
+        symbol,
+        quote: TSYM,
+        ts: Date.now(),
+        points: points.map((p) => ({ t: p.time * 1000, price: p.close })),
       },
-    },
-  );
+      {
+        headers: {
+          "Cache-Control": `s-maxage=${CACHE_SECONDS}, stale-while-revalidate=300`,
+        },
+      },
+    );
+  } catch (e) {
+    return NextResponse.json(
+      {
+        error: e instanceof Error ? e.message : "Upstream error",
+      },
+      { status: 502 },
+    );
+  }
 }
 
 

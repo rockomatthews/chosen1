@@ -1,16 +1,13 @@
 "use client";
 
 import * as React from "react";
+import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
-import Grid from "@mui/material/Grid";
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
-import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -180,13 +177,13 @@ export default function WinnerModule() {
   return (
     <Card>
       <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-        <Stack spacing={2}>
-          <Stack spacing={0.5}>
-            <Typography variant="h6" fontWeight={700}>
-              Winner (last 5m, updates every 60s)
+        <Stack spacing={{ xs: 1.5, sm: 2 }}>
+          <Stack spacing={0.5} sx={{ px: { xs: 0.25, sm: 0 } }}>
+            <Typography variant="h6" fontWeight={800}>
+              Winner (last 5m)
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Tap coins to include/exclude them. No overlap—chips wrap cleanly on mobile.
+            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              Pick your coin list below. We show one winner coin + its chart.
             </Typography>
           </Stack>
 
@@ -250,112 +247,102 @@ export default function WinnerModule() {
 
           <Divider />
 
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 8 }}>
-              <Stack spacing={1}>
-                <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
-                  <Typography variant="subtitle1" fontWeight={700}>
-                    {winner ? `${winner.symbol} ${formatPct(winner.changePct5m)}` : "—"}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {winner ? `Price: ${formatUsd(winner.price)}` : ""}
-                  </Typography>
-                  {(isLoadingBest || isLoadingChart) && (
-                    <CircularProgress size={16} />
-                  )}
-                  <Typography variant="caption" color="text.secondary" sx={{ ml: "auto" }}>
-                    {updatedAt ? `Updated: ${updatedAt.toLocaleTimeString()}` : ""}
-                  </Typography>
-                </Stack>
+          <Stack spacing={1}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              alignItems={{ xs: "flex-start", sm: "center" }}
+              justifyContent="space-between"
+              gap={0.5}
+              sx={{ px: { xs: 0.25, sm: 0 } }}
+            >
+              <Stack direction="row" alignItems="baseline" gap={1} flexWrap="wrap">
+                <Typography variant="h6" fontWeight={900}>
+                  {winner ? winner.symbol : "—"}
+                </Typography>
+                <Typography
+                  variant="subtitle1"
+                  fontWeight={800}
+                  color={
+                    winner?.changePct5m != null
+                      ? winner.changePct5m >= 0
+                        ? "success.main"
+                        : "error.main"
+                      : "text.secondary"
+                  }
+                >
+                  {winner ? formatPct(winner.changePct5m) : ""}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {winner ? `Price: ${formatUsd(winner.price)}` : ""}
+                </Typography>
+                {(isLoadingBest || isLoadingChart) && <CircularProgress size={16} />}
+              </Stack>
+              <Typography variant="caption" color="text.secondary">
+                {updatedAt ? `Updated ${updatedAt.toLocaleTimeString()}` : ""}
+              </Typography>
+            </Stack>
 
-                <Stack
+            <Stack
+              sx={{
+                height: { xs: 260, sm: 300, md: 340 },
+                borderRadius: 3,
+                border: "1px solid",
+                borderColor: "divider",
+                bgcolor: "rgba(0,0,0,0.12)",
+                p: { xs: 1.25, sm: 1.75 },
+              }}
+            >
+              {chart?.points?.length ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chart.points}>
+                    <XAxis
+                      dataKey="t"
+                      tickFormatter={(t) =>
+                        new Date(t as number).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      }
+                      minTickGap={40}
+                    />
+                    <YAxis
+                      dataKey="price"
+                      tickFormatter={(p) => Number(p).toFixed(2)}
+                      width={60}
+                    />
+                    <Tooltip
+                      labelFormatter={(t) => new Date(t as number).toLocaleString()}
+                      formatter={(v) => [formatUsd(Number(v)), "Price"]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="price"
+                      dot={false}
+                      strokeWidth={3}
+                      stroke={theme.palette.secondary.main}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : error ? (
+                <Alert
+                  severity="warning"
                   sx={{
-                    height: { xs: 240, sm: 280, md: 320 },
+                    mt: 1,
                     borderRadius: 2,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    bgcolor: "background.default",
-                    px: 1,
-                    py: 1,
+                    bgcolor: "rgba(255,255,255,0.08)",
                   }}
                 >
-                  {chart?.points?.length ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chart.points}>
-                        <XAxis
-                          dataKey="t"
-                          tickFormatter={(t) => new Date(t as number).toLocaleTimeString()}
-                          minTickGap={35}
-                        />
-                        <YAxis
-                          dataKey="price"
-                          tickFormatter={(p) => Number(p).toFixed(2)}
-                          width={60}
-                        />
-                        <Tooltip
-                          labelFormatter={(t) =>
-                            new Date(t as number).toLocaleString()
-                          }
-                          formatter={(v) => [formatUsd(Number(v)), "Price"]}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="price"
-                          dot={false}
-                          strokeWidth={2}
-                          stroke={theme.palette.primary.main}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <Stack
-                      sx={{ height: "100%" }}
-                      alignItems="center"
-                      justifyContent="center"
-                    >
-                      <Typography color="text.secondary">
-                        {error ? error : "Waiting for data…"}
-                      </Typography>
-                    </Stack>
-                  )}
+                  {error.includes("chart failed") || error.includes("best failed")
+                    ? "Data API error. Make sure CRYPTOCOMPARE_API_KEY is set in Vercel env vars."
+                    : error}
+                </Alert>
+              ) : (
+                <Stack sx={{ height: "100%" }} alignItems="center" justifyContent="center">
+                  <Typography color="text.secondary">Loading…</Typography>
                 </Stack>
-              </Stack>
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Stack spacing={1}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Top movers (5m)
-                </Typography>
-                <List dense disablePadding>
-                  {(best?.rankings ?? []).slice(0, 8).map((r) => (
-                    <ListItem key={r.symbol} disableGutters sx={{ py: 0.25 }}>
-                      <ListItemText
-                        primary={
-                          <Stack direction="row" justifyContent="space-between">
-                            <Typography variant="body2" fontWeight={600}>
-                              {r.symbol}
-                            </Typography>
-                            <Typography
-                              variant="body2"
-                              color={r.changePct5m >= 0 ? "success.main" : "error.main"}
-                            >
-                              {formatPct(r.changePct5m)}
-                            </Typography>
-                          </Stack>
-                        }
-                        secondary={
-                          <Typography variant="caption" color="text.secondary">
-                            {formatUsd(r.price)}
-                          </Typography>
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              </Stack>
-            </Grid>
-          </Grid>
+              )}
+            </Stack>
+          </Stack>
         </Stack>
       </CardContent>
     </Card>

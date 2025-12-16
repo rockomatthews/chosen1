@@ -30,7 +30,8 @@ export default function BuyModule() {
 
           <Stack
             sx={{
-              height: { xs: 560, md: 520 },
+              // Keep above-the-fold on mobile while still usable.
+              height: { xs: 420, sm: 480, md: 520 },
               borderRadius: 2,
               bgcolor: "background.default",
               border: "1px solid",
