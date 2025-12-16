@@ -10,20 +10,39 @@ import BuyModule from "./BuyModule";
 
 export default function Dashboard() {
   return (
-    <Box sx={{ pb: { xs: 6, md: 8 } }}>
-      <Container maxWidth="lg" sx={{ pt: { xs: 3, md: 5 } }}>
-        <Stack spacing={{ xs: 2, md: 3 }}>
-          <Stack spacing={0.75}>
-            <Typography variant="h4" fontWeight={900} sx={{ letterSpacing: -0.5 }}>
-              Momentum Winner
+    <Box sx={{ py: { xs: 3, sm: 4, md: 6 } }}>
+      <Container
+        maxWidth="md"
+        sx={{
+          px: { xs: 2, sm: 3 },
+        }}
+      >
+        <Stack spacing={{ xs: 2, md: 3 }} sx={{ alignItems: "center" }}>
+          <Stack spacing={0.75} sx={{ textAlign: "center", width: "100%" }}>
+            <Typography
+              variant="h3"
+              fontWeight={950}
+              sx={{
+                letterSpacing: -1,
+                lineHeight: 1.05,
+                fontFamily: '"Rushblade", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
+                color: "secondary.main",
+                textShadow: "0 10px 30px rgba(0,0,0,0.35)",
+              }}
+            >
+              BEST CRYPTO ATM
             </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9 }}>
-              Best performer over the last 5 minutes, refreshing every 60 seconds.
+            <Typography variant="body1" sx={{ opacity: 0.95 }}>
+              best crypto over the last 5 minutes
             </Typography>
           </Stack>
 
-          <WinnerModule />
-          <BuyModule />
+          <Box sx={{ width: "100%" }}>
+            <WinnerModule />
+          </Box>
+          <Box sx={{ width: "100%" }}>
+            <BuyModule />
+          </Box>
         </Stack>
       </Container>
     </Box>

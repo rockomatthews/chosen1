@@ -10,7 +10,7 @@ import RampWidget from "./RampWidget";
 export default function BuyModule() {
   return (
     <Card>
-      <CardContent>
+      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
         <Stack spacing={1}>
           <Stack
             direction={{ xs: "column", md: "row" }}
@@ -35,7 +35,7 @@ export default function BuyModule() {
               bgcolor: "background.default",
               border: "1px solid",
               borderColor: "divider",
-              p: 1,
+              p: { xs: 1, sm: 1.5 },
             }}
           >
             <RampWidget />

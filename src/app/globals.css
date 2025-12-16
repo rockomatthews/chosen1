@@ -3,6 +3,14 @@
   --foreground: #171717;
 }
 
+@font-face {
+  font-family: "Rushblade";
+  src: url("/Rushblade.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;

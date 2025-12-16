@@ -3,9 +3,9 @@ import ThemeRegistry from "./theme-registry";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Momentum Winner",
+  title: "BEST CRYPTO ATM",
   description:
-    "Shows the best-performing crypto (last 5 minutes) from a filterable list, updating every 5 seconds.",
+    "Best crypto over the last 5 minutes from a filterable list.",
 };
 
 export default function RootLayout({

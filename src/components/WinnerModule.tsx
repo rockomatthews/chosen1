@@ -179,7 +179,7 @@ export default function WinnerModule() {
 
   return (
     <Card>
-      <CardContent>
+      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
         <Stack spacing={2}>
           <Stack spacing={0.5}>
             <Typography variant="h6" fontWeight={700}>
