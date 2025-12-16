@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import Autocomplete from "@mui/material/Autocomplete";
+import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import Grid from "@mui/material/Grid";
@@ -13,8 +14,9 @@ import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { useTheme } from "@mui/material/styles";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
-import { DEFAULT_COIN_OPTIONS, DEFAULT_SELECTED_SYMBOLS, type CoinOption } from "@/lib/symbols";
+import { DEFAULT_COIN_OPTIONS, DEFAULT_SELECTED_SYMBOLS } from "@/lib/symbols";
 
 type BestResponse = {
   ts: number;
@@ -48,9 +50,11 @@ function formatUsd(n: number) {
 }
 
 export default function WinnerModule() {
+  const theme = useTheme();
   const [selectedSymbols, setSelectedSymbols] = React.useState<string[]>(
     DEFAULT_SELECTED_SYMBOLS,
   );
+  const [search, setSearch] = React.useState("");
   const [best, setBest] = React.useState<BestResponse | null>(null);
   const [chart, setChart] = React.useState<ChartResponse | null>(null);
   const [isLoadingBest, setIsLoadingBest] = React.useState(false);
@@ -83,10 +87,37 @@ export default function WinnerModule() {
     }
   }, [selectedSymbols]);
 
-  const selectedOptions: CoinOption[] = React.useMemo(() => {
-    const bySymbol = new Map(DEFAULT_COIN_OPTIONS.map((c) => [c.symbol, c]));
-    return selectedSymbols.map((s) => bySymbol.get(s) ?? { symbol: s, name: s });
-  }, [selectedSymbols]);
+  const allSymbols = React.useMemo(
+    () => DEFAULT_COIN_OPTIONS.map((c) => c.symbol),
+    [],
+  );
+
+  const filteredOptions = React.useMemo(() => {
+    const q = search.trim().toUpperCase();
+    if (!q) return DEFAULT_COIN_OPTIONS;
+    return DEFAULT_COIN_OPTIONS.filter(
+      (c) => c.symbol.includes(q) || c.name.toUpperCase().includes(q),
+    );
+  }, [search]);
+
+  const setAll = React.useCallback(() => setSelectedSymbols(allSymbols), [allSymbols]);
+  const setDefault = React.useCallback(
+    () => setSelectedSymbols(DEFAULT_SELECTED_SYMBOLS),
+    [],
+  );
+  const clearAll = React.useCallback(() => setSelectedSymbols([]), []);
+
+  const toggleSymbol = React.useCallback(
+    (symbol: string) => {
+      setSelectedSymbols((prev) => {
+        if (prev.includes(symbol)) return prev.filter((s) => s !== symbol);
+        // Keep a hard cap at 20 (server max)
+        if (prev.length >= 20) return prev;
+        return [...prev, symbol];
+      });
+    },
+    [],
+  );
 
   const fetchBestAndChart = React.useCallback(
     async (signal?: AbortSignal) => {
@@ -155,26 +186,67 @@ export default function WinnerModule() {
               Winner (last 5m, updates every 60s)
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Pick which coins compete. The chart below always shows the current
-              winner.
+              Tap coins to include/exclude them. No overlap—chips wrap cleanly on mobile.
             </Typography>
           </Stack>
 
-          <Autocomplete
-            multiple
-            options={DEFAULT_COIN_OPTIONS}
-            value={selectedOptions}
-            onChange={(_, value) => setSelectedSymbols(value.map((v) => v.symbol))}
-            getOptionLabel={(o) => `${o.symbol} — ${o.name}`}
-            filterSelectedOptions
-            renderInput={(params) => (
+          <Stack spacing={1}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              gap={1}
+              alignItems={{ xs: "stretch", sm: "center" }}
+            >
               <TextField
-                {...params}
-                label="Filterable coin list (max 20)"
-                placeholder="Add coin…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                label="Search coins"
+                placeholder="BTC, ETH, Solana…"
+                size="small"
+                fullWidth
               />
-            )}
-          />
+              <Stack direction="row" gap={1} sx={{ flexWrap: "wrap" }}>
+                <Button
+                  onClick={setAll}
+                  variant="contained"
+                  color="secondary"
+                  size="small"
+                >
+                  Select all
+                </Button>
+                <Button onClick={setDefault} variant="outlined" size="small">
+                  Reset
+                </Button>
+                <Button onClick={clearAll} variant="text" size="small">
+                  Clear
+                </Button>
+              </Stack>
+            </Stack>
+
+            <Stack direction="row" gap={1} sx={{ flexWrap: "wrap" }}>
+              {filteredOptions.map((c) => {
+                const selected = selectedSymbols.includes(c.symbol);
+                return (
+                  <Chip
+                    key={c.symbol}
+                    label={c.symbol}
+                    onClick={() => toggleSymbol(c.symbol)}
+                    size="small"
+                    color={selected ? "secondary" : "default"}
+                    variant={selected ? "filled" : "outlined"}
+                    sx={{
+                      cursor: "pointer",
+                      borderColor: selected ? "transparent" : "rgba(255,255,255,0.45)",
+                      bgcolor: selected ? undefined : "rgba(255,255,255,0.08)",
+                    }}
+                  />
+                );
+              })}
+            </Stack>
+
+            <Typography variant="caption" color="text.secondary">
+              Selected: {selectedSymbols.length}/20
+            </Typography>
+          </Stack>
 
           <Divider />
 
@@ -198,7 +270,7 @@ export default function WinnerModule() {
 
                 <Stack
                   sx={{
-                    height: 320,
+                    height: { xs: 240, sm: 280, md: 320 },
                     borderRadius: 2,
                     border: "1px solid",
                     borderColor: "divider",
@@ -231,7 +303,7 @@ export default function WinnerModule() {
                           dataKey="price"
                           dot={false}
                           strokeWidth={2}
-                          stroke="#7c4dff"
+                          stroke={theme.palette.primary.main}
                         />
                       </LineChart>
                     </ResponsiveContainer>

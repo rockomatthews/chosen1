@@ -30,7 +30,7 @@ export default function BuyModule() {
 
           <Stack
             sx={{
-              height: 520,
+              height: { xs: 560, md: 520 },
               borderRadius: 2,
               bgcolor: "background.default",
               border: "1px solid",
