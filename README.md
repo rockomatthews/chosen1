@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Momentum Winner
 
-## Getting Started
+Next.js + Material UI app that:
+- every **60 seconds** picks the **best performer over the last 5 minutes** from a **filterable coin list**
+- shows a fresh **live-updating chart** for the current winner
+- embeds a **Ramp** buy widget below the chart
 
-First, run the development server:
+## Local dev
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Copy `ENV.example` to your own local env file (any name you like) and set values.
 
-## Learn More
+- **Server-side (API routes)**\n  - `CRYPTOCOMPARE_API_KEY`: used by `/api/best` + `/api/chart` to fetch minute candles.\n- **Client-side (Ramp iframe)**\n  - `NEXT_PUBLIC_RAMP_WIDGET_API_KEY`: Ramp “host API key” for widget embed.
 
-To learn more about Next.js, take a look at the following resources:
+## Deploy to Vercel (immediate)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Push this repo to GitHub.
+2. In Vercel: **New Project** → Import the GitHub repo.
+3. Add environment variables in **Project Settings → Environment Variables**:\n   - `CRYPTOCOMPARE_API_KEY` (Production)\n   - `NEXT_PUBLIC_RAMP_WIDGET_API_KEY` (Production)
+4. Deploy. Vercel will build and host it automatically.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Notes / troubleshooting
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Polling & rate limits**: the UI polls every 60 seconds, and the server routes send `Cache-Control: s-maxage=60` to keep requests cheap on Vercel.\n- **Ramp params**: the embed URL is generated in `src/components/RampWidget.tsx`. If Ramp changes required query params for your account, update them there.\n- **API endpoints**:\n  - `GET /api/best?symbols=BTC,ETH,SOL`\n  - `GET /api/chart?symbol=BTC&limit=180`
