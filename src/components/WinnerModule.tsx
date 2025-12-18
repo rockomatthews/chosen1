@@ -69,24 +69,7 @@ export default function WinnerModule() {
   React.useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        // #region agent log
-        fetch("http://127.0.0.1:7242/ingest/48e77f11-88a7-4f89-bf80-e14339fcdc25", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId: "debug-session",
-            runId: "default-all-collapse",
-            hypothesisId: "H",
-            location: "src/components/WinnerModule.tsx:loadSelection",
-            message: "No saved selection; keeping default all",
-            data: { selectedCount: allSymbols.length, allCount: allSymbols.length },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
-        return;
-      }
+      if (!raw) return;
       const parsed = JSON.parse(raw) as unknown;
       if (Array.isArray(parsed)) {
         const cleaned = parsed
@@ -104,40 +87,10 @@ export default function WinnerModule() {
           } catch {
             // ignore
           }
-          // #region agent log
-          fetch("http://127.0.0.1:7242/ingest/48e77f11-88a7-4f89-bf80-e14339fcdc25", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              sessionId: "debug-session",
-              runId: "default-all-collapse",
-              hypothesisId: "H",
-              location: "src/components/WinnerModule.tsx:loadSelection",
-              message: "Saved selection overridden to ALL on load",
-              data: { savedCount: unique.length, allCount: allSymbols.length },
-              timestamp: Date.now(),
-            }),
-          }).catch(() => {});
-          // #endregion
           return;
         }
 
         setSelectedSymbols(unique);
-        // #region agent log
-        fetch("http://127.0.0.1:7242/ingest/48e77f11-88a7-4f89-bf80-e14339fcdc25", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId: "debug-session",
-            runId: "default-all-collapse",
-            hypothesisId: "H",
-            location: "src/components/WinnerModule.tsx:loadSelection",
-            message: "Saved selection already ALL; keeping it",
-            data: { savedCount: unique.length, allCount: allSymbols.length },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
       }
     } catch {
       // ignore
@@ -196,7 +149,8 @@ export default function WinnerModule() {
         const winnerSymbol = bestJson.winner.symbol;
         setIsLoadingChart(true);
         const chartRes = await fetch(
-          `/api/chart?symbol=${encodeURIComponent(winnerSymbol)}&limit=180`,
+          // Show the winner's movement over the last hour (1m candles).
+          `/api/chart?symbol=${encodeURIComponent(winnerSymbol)}&limit=60`,
           { signal },
         );
         if (!chartRes.ok) {
@@ -232,101 +186,16 @@ export default function WinnerModule() {
   const winner = best?.winner;
   const updatedAt = best?.ts ? new Date(best.ts) : null;
 
-  React.useEffect(() => {
-    const runId = "pre-fix";
-    const card = document.querySelector('[data-testid="winner-card"]');
-    const content = document.querySelector('[data-testid="winner-content"]');
-    const cs = content ? window.getComputedStyle(content as Element) : null;
-    // #region agent log
-    fetch("http://127.0.0.1:7242/ingest/48e77f11-88a7-4f89-bf80-e14339fcdc25", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sessionId: "debug-session",
-        runId,
-        hypothesisId: "C",
-        location: "src/components/WinnerModule.tsx:useEffect",
-        message: "Winner padding/computed styles",
-        data: {
-          viewportW: window.innerWidth,
-          cardRect: card ? (card as HTMLElement).getBoundingClientRect() : null,
-          contentPadding: cs
-            ? { pl: cs.paddingLeft, pr: cs.paddingRight, pt: cs.paddingTop, pb: cs.paddingBottom }
-            : null,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-  }, []);
-
-  React.useEffect(() => {
-    const runId = "remove-search";
-    const input = document.querySelector('input[aria-label="Search coins"], input[name="Search coins"]');
-    const wrapper = document.querySelector('[data-testid="winner-chip-wrap"]');
-    const chipCount = wrapper ? wrapper.querySelectorAll(".MuiChip-root").length : null;
-    // #region agent log
-    fetch("http://127.0.0.1:7242/ingest/48e77f11-88a7-4f89-bf80-e14339fcdc25", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sessionId: "debug-session",
-        runId,
-        hypothesisId: "E",
-        location: "src/components/WinnerModule.tsx:useEffect",
-        message: "Search field removed + chip render count",
-        data: {
-          hasSearchInput: !!input,
-          chipCount,
-          optionCount: DEFAULT_COIN_OPTIONS.length,
-          selectedCount: selectedSymbols.length,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-  }, [selectedSymbols.length]);
-
-  React.useEffect(() => {
-    const runId = "default-all-collapse";
-    let hasSaved = false;
-    try {
-      hasSaved = !!localStorage.getItem(STORAGE_KEY);
-    } catch {
-      hasSaved = false;
-    }
-    // #region agent log
-    fetch("http://127.0.0.1:7242/ingest/48e77f11-88a7-4f89-bf80-e14339fcdc25", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sessionId: "debug-session",
-        runId,
-        hypothesisId: "F",
-        location: "src/components/WinnerModule.tsx:useEffect",
-        message: "Default selection + persistence + picker state",
-        data: {
-          hasSavedSelection: hasSaved,
-          selectedCount: selectedSymbols.length,
-          allCount: allSymbols.length,
-          pickerOpen,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-  }, [allSymbols.length, pickerOpen, selectedSymbols.length]);
-
   return (
-    <Card data-testid="winner-card">
-      <CardContent data-testid="winner-content" sx={{ p: { xs: 2, sm: 3 } }}>
+    <Card>
+      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
         <Stack spacing={{ xs: 1.5, sm: 2 }}>
           <Stack spacing={0.5} sx={{ px: { xs: 0.25, sm: 0 } }}>
             <Typography variant="h6" fontWeight={800}>
               Winner (last 5m)
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9 }}>
-              Pick your coin list below. We show one winner coin + its chart.
+              Pick your coin list below. We show one winner coin + its last hour chart.
             </Typography>
           </Stack>
 
@@ -334,21 +203,6 @@ export default function WinnerModule() {
             expanded={pickerOpen}
             onChange={(_, expanded) => {
               setPickerOpen(expanded);
-              // #region agent log
-              fetch("http://127.0.0.1:7242/ingest/48e77f11-88a7-4f89-bf80-e14339fcdc25", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  sessionId: "debug-session",
-                  runId: "default-all-collapse",
-                  hypothesisId: "G",
-                  location: "src/components/WinnerModule.tsx:Accordion:onChange",
-                  message: "Picker accordion toggled",
-                  data: { expanded },
-                  timestamp: Date.now(),
-                }),
-              }).catch(() => {});
-              // #endregion
             }}
             disableGutters
             sx={{
@@ -387,7 +241,6 @@ export default function WinnerModule() {
                 </Stack>
 
                 <Stack
-                  data-testid="winner-chip-wrap"
                   direction="row"
                   gap={1}
                   sx={{ flexWrap: "wrap" }}

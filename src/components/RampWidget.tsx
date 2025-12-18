@@ -24,8 +24,10 @@ function buildRampUrl({
 
 export default function RampWidget({
   defaultAsset = "BTC",
+  userAddress,
 }: {
   defaultAsset?: string;
+  userAddress?: string;
 }) {
   const hostApiKey = process.env.NEXT_PUBLIC_RAMP_WIDGET_API_KEY;
 
@@ -42,7 +44,7 @@ export default function RampWidget({
     );
   }
 
-  const src = buildRampUrl({ hostApiKey, defaultAsset });
+  const src = buildRampUrl({ hostApiKey, defaultAsset, userAddress });
 
   return (
     <iframe
